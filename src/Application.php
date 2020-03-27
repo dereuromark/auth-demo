@@ -35,7 +35,6 @@ use Cake\Http\ServerRequest;
 use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
 use Psr\Http\Message\ServerRequestInterface;
-use TinyAuth\Middleware\RequestAuthorizationMiddleware;
 use TinyAuth\Policy\RequestPolicy;
 
 /**
@@ -68,6 +67,8 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             $this->addPlugin('DebugKit');
         }
 
+        $this->addPlugin('Setup');
+        $this->addPlugin('Tools');
         $this->addPlugin('TinyAuth');
         // Load more plugins here
     }
@@ -101,7 +102,7 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             // `new RoutingMiddleware($this, '_cake_routes_')`
             ->add(new RoutingMiddleware($this))
 
-            ->add(new RequestAuthorizationMiddleware())
+            //->add(new RequestAuthorizationMiddleware())
 
             // Parse various types of encoded request bodies so that they are
             // available as array through $request->getData()
@@ -129,19 +130,11 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
 
         $this->addPlugin('Migrations');
 
+        // Only for IDE helper to detect
+        $this->addPlugin('Authentication');
+        $this->addPlugin('Authorization');
+
         // Load more plugins here
-    }
-
-    /**
-     * @param \Psr\Http\Message\ServerRequestInterface $request
-     * @return \Authorization\AuthorizationServiceInterface
-     */
-    public function getAuthorizationService(ServerRequestInterface $request): AuthorizationServiceInterface
-    {
-        $resolver = new MapResolver();
-        $resolver->map(ServerRequest::class, RequestPolicy::class);
-
-        return new AuthorizationService($resolver);
     }
 
     /**
@@ -154,11 +147,15 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
     {
         $service = new AuthenticationService();
 
+        $service->setConfig([
+            'unauthenticatedRedirect' => '/account/login',
+            'queryParam' => 'redirect',
+        ]);
+
         $fields = [
-            'username' => 'email',
+            'username' => 'login',
             'password' => 'password'
         ];
-
         // Load identifiers
         $service->loadIdentifier('Authentication.Password', compact('fields'));
 
@@ -166,10 +163,22 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
         $service->loadAuthenticator('Authentication.Session');
         $service->loadAuthenticator('Authentication.Form', [
             'fields' => $fields,
-            'loginUrl' => '/users/login'
+            'loginUrl' => '/account/login',
         ]);
 
         return $service;
+    }
+
+    /**
+     * @param \Psr\Http\Message\ServerRequestInterface $request
+     * @return \Authorization\AuthorizationServiceInterface
+     */
+    public function getAuthorizationService(ServerRequestInterface $request): AuthorizationServiceInterface
+    {
+        $resolver = new MapResolver();
+        $resolver->map(ServerRequest::class, RequestPolicy::class);
+
+        return new AuthorizationService($resolver);
     }
 
 }

@@ -6,12 +6,14 @@
     "license": "MIT",
     "require": {
         "php": ">=7.2",
+        "cakephp/authentication": "dev-master",
+        "cakephp/authorization": "dev-master",
         "cakephp/cakephp": "^4.0",
         "cakephp/migrations": "^3.0",
         "cakephp/plugin-installer": "^1.2",
-        "cakephp/authentication": "dev-master",
-        "cakephp/authorization": "dev-master",
-        "dereuromark/cakephp-tinyauth": "dev-master"
+        "dereuromark/cakephp-setup": "^2.0",
+        "dereuromark/cakephp-tinyauth": "dev-master",
+        "dereuromark/cakephp-tools": "^2.0"
     },
     "require-dev": {
         "dereuromark/cakephp-ide-helper": "^1.0.0",
@@ -32,6 +34,8 @@
         }
     },
     "scripts": {
+        "setup": "bin/cake code_completion generate && bin/cake phpstorm generate",
+        "annotate": "bin/cake annotate all",
         "post-install-cmd": "App\\Console\\Installer::postInstall",
         "post-create-project-cmd": "App\\Console\\Installer::postInstall",
         "post-autoload-dump": "Cake\\Composer\\Installer\\PluginInstaller::postAutoloadDump",

@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Controller;
 
+use Authentication\Identity;
 use Cake\Controller\Controller;
 
 /**
@@ -25,6 +26,9 @@ use Cake\Controller\Controller;
  * will inherit them.
  *
  * @link https://book.cakephp.org/4/en/controllers.html#the-app-controller
+ * @property \TinyAuth\Controller\Component\AuthorizationComponent $Authorization
+ * @property \TinyAuth\Controller\Component\AuthenticationComponent $Authentication
+ * @property \TinyAuth\Controller\Component\AuthUserComponent $AuthUser
  */
 class AppController extends Controller
 {
@@ -42,14 +46,16 @@ class AppController extends Controller
         parent::initialize();
 
         $authUser = $this->request->getAttribute('identity');
-        // Simulate logged in user data for now
-        if (!$authUser) {
+        if ($authUser && $this->request->getQuery('debug')) {
+            /*
             $authUser = [
                 'id' => 1,
                 'role_id' => 1,
                 'username' => 'mark',
             ];
             $this->request = $this->request->withAttribute('identity', $authUser);
+            */
+            dd($authUser);
         }
 
         $this->loadComponent('RequestHandler');
@@ -57,6 +63,8 @@ class AppController extends Controller
 
         $this->loadComponent('TinyAuth.Authorization');
         $this->loadComponent('TinyAuth.Authentication');
+
+        $this->loadComponent('TinyAuth.AuthUser');
 
         /*
          * Enable the following component for recommended CakePHP form protection settings.
