@@ -18,7 +18,7 @@ class AccountController extends AppController
     public function login() {
         $userId = $this->AuthUser->user('id');
         if ($userId) {
-            return $this->redirect($this->Auth->redirectUrl());
+            return $this->redirect($this->Authentication->getLoginRedirect() ?: '/account');
         }
 
         $result = $this->Authentication->getResult();
@@ -28,26 +28,11 @@ class AccountController extends AppController
 
             return $this->redirect($target);
         }
+
         if ($this->request->is('post') && !$result->isValid()) {
             $this->Flash->error('Invalid username or password');
         }
 
-        if ($this->Common->isPosted()) {
-            $user = $this->Auth->identify();
-            if ($user) {
-                $this->Auth->setUser($user);
-                $this->Flash->success(__('You are now logged in.'));
-
-                return $this->redirect($this->Auth->redirectUrl());
-            }
-            $this->Flash->error('Wrong username/email or password');
-            //$this->request->data['password'] = '';
-        } else {
-            $username = $this->request->getQuery('username');
-            if ($username) {
-                $this->request = $this->request->withData('login', $username);
-            }
-        }
     }
 
     /**

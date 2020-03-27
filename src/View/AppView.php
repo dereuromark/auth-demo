@@ -40,5 +40,6 @@ class AppView extends View
         $this->loadHelper('Authentication.Identity');
         $this->loadHelper('TinyAuth.AuthUser');
         $this->loadHelper('TinyAuth.Authentication');
+        $this->loadHelper('Shim.Configure');
     }
 }

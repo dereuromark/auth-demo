@@ -92,7 +92,12 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             ]))
 
             ->add(new AuthenticationMiddleware($this))
-            ->add(new AuthorizationMiddleware($this))
+
+            ->add(new AuthorizationMiddleware($this, [
+                'unauthorizedHandler' => [
+                    'className' => 'Authorization.Redirect',
+                ],
+            ]))
 
             // Add routing middleware.
             // If you have a large number of routes connected, turning on routes
@@ -131,6 +136,7 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
         $this->addPlugin('Migrations');
 
         // Only for IDE helper to detect
+        $this->addPlugin('Shim');
         $this->addPlugin('Authentication');
         $this->addPlugin('Authorization');
 
@@ -176,7 +182,11 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
     public function getAuthorizationService(ServerRequestInterface $request): AuthorizationServiceInterface
     {
         $resolver = new MapResolver();
-        $resolver->map(ServerRequest::class, RequestPolicy::class);
+
+        $policy = new RequestPolicy([
+            'includeAuthentication' => true,
+        ]);
+        $resolver->map(ServerRequest::class, $policy);
 
         return new AuthorizationService($resolver);
     }
