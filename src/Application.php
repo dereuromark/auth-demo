@@ -16,14 +16,27 @@ declare(strict_types=1);
  */
 namespace App;
 
+use Authentication\AuthenticationService;
+use Authentication\AuthenticationServiceInterface;
+use Authentication\AuthenticationServiceProviderInterface;
+use Authentication\Middleware\AuthenticationMiddleware;
+use Authorization\AuthorizationService;
+use Authorization\AuthorizationServiceInterface;
+use Authorization\AuthorizationServiceProviderInterface;
+use Authorization\Middleware\AuthorizationMiddleware;
+use Authorization\Policy\MapResolver;
 use Cake\Core\Configure;
 use Cake\Core\Exception\MissingPluginException;
 use Cake\Error\Middleware\ErrorHandlerMiddleware;
 use Cake\Http\BaseApplication;
 use Cake\Http\Middleware\BodyParserMiddleware;
 use Cake\Http\MiddlewareQueue;
+use Cake\Http\ServerRequest;
 use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
+use Psr\Http\Message\ServerRequestInterface;
+use TinyAuth\Middleware\RequestAuthorizationMiddleware;
+use TinyAuth\Policy\RequestPolicy;
 
 /**
  * Application setup class.
@@ -31,7 +44,7 @@ use Cake\Routing\Middleware\RoutingMiddleware;
  * This defines the bootstrapping logic and middleware layers you
  * want to use in your application.
  */
-class Application extends BaseApplication
+class Application extends BaseApplication implements AuthenticationServiceProviderInterface, AuthorizationServiceProviderInterface
 {
     /**
      * Load all the application configuration and bootstrap logic.
@@ -55,6 +68,7 @@ class Application extends BaseApplication
             $this->addPlugin('DebugKit');
         }
 
+        $this->addPlugin('TinyAuth');
         // Load more plugins here
     }
 
@@ -76,6 +90,9 @@ class Application extends BaseApplication
                 'cacheTime' => Configure::read('Asset.cacheTime'),
             ]))
 
+            ->add(new AuthenticationMiddleware($this))
+            ->add(new AuthorizationMiddleware($this))
+
             // Add routing middleware.
             // If you have a large number of routes connected, turning on routes
             // caching in production could improve performance. For that when
@@ -83,6 +100,8 @@ class Application extends BaseApplication
             // using it's second constructor argument:
             // `new RoutingMiddleware($this, '_cake_routes_')`
             ->add(new RoutingMiddleware($this))
+
+            ->add(new RequestAuthorizationMiddleware())
 
             // Parse various types of encoded request bodies so that they are
             // available as array through $request->getData()
@@ -103,6 +122,7 @@ class Application extends BaseApplication
     {
         try {
             $this->addPlugin('Bake');
+            $this->addPlugin('IdeHelper');
         } catch (MissingPluginException $e) {
             // Do not halt if the plugin is missing
         }
@@ -111,4 +131,45 @@ class Application extends BaseApplication
 
         // Load more plugins here
     }
+
+    /**
+     * @param \Psr\Http\Message\ServerRequestInterface $request
+     * @return \Authorization\AuthorizationServiceInterface
+     */
+    public function getAuthorizationService(ServerRequestInterface $request): AuthorizationServiceInterface
+    {
+        $resolver = new MapResolver();
+        $resolver->map(ServerRequest::class, RequestPolicy::class);
+
+        return new AuthorizationService($resolver);
+    }
+
+    /**
+     * Returns a service provider instance.
+     *
+     * @param \Psr\Http\Message\ServerRequestInterface $request Request
+     * @return \Authentication\AuthenticationServiceInterface
+     */
+    public function getAuthenticationService(ServerRequestInterface $request): AuthenticationServiceInterface
+    {
+        $service = new AuthenticationService();
+
+        $fields = [
+            'username' => 'email',
+            'password' => 'password'
+        ];
+
+        // Load identifiers
+        $service->loadIdentifier('Authentication.Password', compact('fields'));
+
+        // Load the authenticators, you want session first
+        $service->loadAuthenticator('Authentication.Session');
+        $service->loadAuthenticator('Authentication.Form', [
+            'fields' => $fields,
+            'loginUrl' => '/users/login'
+        ]);
+
+        return $service;
+    }
+
 }

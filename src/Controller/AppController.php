@@ -41,8 +41,22 @@ class AppController extends Controller
     {
         parent::initialize();
 
+        $authUser = $this->request->getAttribute('identity');
+        // Simulate logged in user data for now
+        if (!$authUser) {
+            $authUser = [
+                'id' => 1,
+                'role_id' => 1,
+                'username' => 'mark',
+            ];
+            $this->request = $this->request->withAttribute('identity', $authUser);
+        }
+
         $this->loadComponent('RequestHandler');
         $this->loadComponent('Flash');
+
+        $this->loadComponent('TinyAuth.Authorization');
+        $this->loadComponent('TinyAuth.Authentication');
 
         /*
          * Enable the following component for recommended CakePHP form protection settings.
